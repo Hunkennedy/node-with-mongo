@@ -4,29 +4,34 @@ import config from '../config';
 import role from '../models/role';
 
 export const signUp = async (req, res) => {
-    const { username, email, password, roles } = req.body;
+    const { username, email, password, roles } = req.body; //getting data
     const newUser = new user({
-        userName: username,
+        userName: username, //I don't asign it directly because have differents names
         email,
-        password: await user.encryptPassword(password)
+        password: await user.encryptPassword(password) // calling the function from the user model
     });
     if (roles) {
         const foundRoles = await role.find({ name: { $in: roles } });
-        newUser.roles = foundRoles.map(role => role._id);
+        console.log(foundRoles);
+        if (foundRoles.length > 0) {
+            newUser.roles = foundRoles.map(role => role._id);
+        }
+        else {
+            const notRole = await role.findOne({ name: 'user' });
+            newUser.roles = [notRole._id];
+        }
     }
     else {
         const notRole = await role.findOne({ name: 'user' });
         newUser.roles = [notRole._id];
     }
-
     const userSaved = await newUser.save();
-    console.log(userSaved);
     const token = jwt.sign({
         id: userSaved.id
     },
         config.SECRET,
         { expiresIn: config.EXPIRES }
-    )
+    );
     res.json({ token });
 }
 export const signIn = async (req, res) => {
@@ -40,6 +45,6 @@ export const signIn = async (req, res) => {
     },
         config.SECRET,
         { expiresIn: config.EXPIRES }
-    )
+    );
     res.json({ token });
 }
